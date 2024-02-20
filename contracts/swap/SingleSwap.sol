@@ -9,7 +9,7 @@ contract SingleSwap {
     ISwapRouter public immutable ROUTER;
     uint24 public immutable FEE = 3000;
 
-    event Log(string messger, uint256 value);
+    event Log(string messge, uint256 value);
 
     constructor(address _router) {
         ROUTER = ISwapRouter(_router);
