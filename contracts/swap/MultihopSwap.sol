@@ -15,7 +15,7 @@ contract MultihopSwap {
         ROUTER = ISwapRouter(_router);
     }
 
-    function swapExtractInputMultihop(address tokenIn, bytes path, address tokenOut,uint amountIn) external returns (uint256 amountOut){
+    function swapExtractInputMultihop(address tokenIn, bytes memory path,uint amountIn) external returns (uint256 amountOut){
         TransferHelper.safeTransferFrom(tokenIn, msg.sender, address(this), amountIn);
         TransferHelper.safeApprove(tokenIn, address(ROUTER), amountIn);
 
@@ -28,25 +28,25 @@ contract MultihopSwap {
                 amountIn: amountIn,
                 amountOutMinimum: 0
         });
-        amountOut = ISwapRouter.exactInput(params);
+        amountOut = ROUTER.exactInput(params);
         emit Log("amountOut in swapExtractInputMultihop :", amountOut);
 
     }
 
-    function swapExtractOutputMultihop(address tokenIn, address tokenOut, uint amountOut, uint amountInMaximun) external returns (uint amountIn) {
+    function swapExtractOutputMultihop(address tokenIn, uint amountOut, uint256 amountInMaximun, bytes memory path) external returns (uint amountIn) {
         TransferHelper.safeTransferFrom(tokenIn, msg.sender, address(this), amountInMaximun);
         TransferHelper.safeApprove(tokenIn, address(ROUTER), amountInMaximun);
 
 
-        ISwapRouter.ExacOutputParams memory params = 
-            ISwapRouter.ExacOutputParams({
+        ISwapRouter.ExactOutputParams memory params = 
+            ISwapRouter.ExactOutputParams({
                 path: path,
                 recipient: msg.sender,
                 deadline: block.timestamp,
                 amountOut: amountOut,
-                amountInMaximun: amountInMaximun
+                amountInMaximum: amountInMaximun
         });
-        amountIn = ISwapRouter.exactOutput(params);
+        amountIn = ROUTER.exactOutput(params);
         emit Log("amountIn in swapExtractOutputMultihop :", amountIn);
 
         if(amountIn < amountInMaximun) {
