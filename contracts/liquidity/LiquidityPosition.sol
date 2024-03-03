@@ -70,6 +70,7 @@ contract LiquidityPosition is IERC721Receiver {
 
         (tokenId, liquidity, amount0, amount1) = positionMgr.mint(params);
         _createDeposit(msg.sender, tokenId);
+        //trasnafer back to msg.sender if any remainning token 
         if (amount0 < _amount0ToMint) {
             TransferHelper.safeApprove(_token0, address (positionMgr), 0);
             TransferHelper.safeTransfer(_token0, msg.sender, (_amount0ToMint - amount0));
@@ -103,6 +104,65 @@ contract LiquidityPosition is IERC721Receiver {
 
         // send collected feed back to owner
         _sendToOwner(tokenId, amount0, amount1);
+    }
+
+
+    /// @notice A function that decreases the current liquidity by half. An example to show how to call the `decreaseLiquidity` function defined in periphery.
+    /// @param tokenId The id of the erc721 token
+    /// @return amount0 The amount received back in token0
+    /// @return amount1 The amount returned back in token1
+    function decreaseLiquidityInHalf(uint256 tokenId) external returns (uint256 amount0, uint256 amount1) {
+        // caller must be the owner of the NFT
+        require(msg.sender == deposits[tokenId].owner, 'Not the owner');
+        // get liquidity data for tokenId
+        uint128 liquidity = deposits[tokenId].liquidity;
+        uint128 halfLiquidity = liquidity / 2;
+
+        // amount0Min and amount1Min are price slippage checks
+        // if the amount received after burning is not greater than these minimums, transaction will fail
+        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: tokenId,
+                liquidity: halfLiquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            });
+
+        (amount0, amount1) = nonfungiblePositionManager.decreaseLiquidity(params);
+
+        //send liquidity back to owner
+        _sendToOwner(tokenId, amount0, amount1);
+    }
+
+    /// @notice Increases liquidity in the current range
+    /// @dev Pool must be initialized already to add liquidity
+    /// @param tokenId The id of the erc721 token
+    /// @param amount0 The amount to add of token0
+    /// @param amount1 The amount to add of token1
+    function increaseLiquidityCurrentRange(
+        uint256 tokenId,
+        uint256 amountAdd0,
+        uint256 amountAdd1
+    )
+        external
+        returns (
+            uint128 liquidity,
+            uint256 amount0,
+            uint256 amount1
+        )
+    {
+        INonfungiblePositionManager.IncreaseLiquidityParams memory params =
+            INonfungiblePositionManager.IncreaseLiquidityParams({
+                tokenId: tokenId,
+                amount0Desired: amountAdd0,
+                amount1Desired: amountAdd1,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            });
+
+        (liquidity, amount0, amount1) = nonfungiblePositionManager.increaseLiquidity(params);
     }
 
     /// @notice Transfers funds to owner of NFT
